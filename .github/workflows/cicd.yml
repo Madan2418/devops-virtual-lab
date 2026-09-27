@@ -11,12 +11,26 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t devops-lab-app ./app
+        run: docker build -t devops-lab-app:latest ./app
 
-      - name: Validate Kubernetes manifests
+      - name: Install Minikube
         run: |
-          kubectl apply --dry-run=client --validate=false -f k8s/deployment.yml
-          kubectl apply --dry-run=client --validate=false -f k8s/service.yml
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          rm minikube-linux-amd64
+
+      - name: Start Kubernetes cluster
+        run: minikube start --driver=docker
+
+      - name: Load Docker image into Minikube
+        run: minikube image load devops-lab-app:latest
+
+      - name: Deploy application
+        run: |
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/service.yml
+          kubectl get pods
+          kubectl get services
